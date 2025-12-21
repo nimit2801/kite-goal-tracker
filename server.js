@@ -4,6 +4,7 @@ const { KiteConnect } = require('kiteconnect');
 const app = express();
 const cors = require('cors');
 const { getGeminiSuggestions } = require('./util/gemini');
+const { getOllamaSuggestions } = require('./util/ollama');
 const PORT = 3001;
 
 app.use(express.static('public'));
@@ -130,13 +131,20 @@ app.post('/api/assign', (req, res) => {
 });
 
 app.post('/api/suggestions', async (req, res) => {
-    const { holdings, goals } = req.body;
-
-    // Cache removed to ensure fresh results every time as requested.
+    const { holdings, goals, provider } = req.body;
     
+    // Default to gemini if not specified
+    const selectedProvider = provider || 'gemini';
+
+    console.log(`Generating suggestions using provider: ${selectedProvider}`);
+
     try {
-        const result = await getGeminiSuggestions(holdings, goals);
-        // Result is now { suggestions: [...], tokenUsage: {...} }
+        let result;
+        if (selectedProvider === 'ollama') {
+            result = await getOllamaSuggestions(holdings, goals);
+        } else {
+            result = await getGeminiSuggestions(holdings, goals);
+        }
         res.json(result);
     } catch (err) {
         console.error("Suggestions Error:", err);

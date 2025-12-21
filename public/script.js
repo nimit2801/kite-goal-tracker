@@ -219,20 +219,40 @@ async function deleteGoal(id) {
 // AI Suggestions Logic
 let currentSuggestions = [];
 
-async function getAISuggestions() {
+function openSuggestionsModal() {
     const suggestionsModal = document.getElementById('suggestions-modal');
+    suggestionsModal.classList.remove('hidden');
+    
+    // Reset view
+    document.getElementById('ai-entry-view').classList.remove('hidden');
+    document.getElementById('suggestions-loading').classList.add('hidden');
+    document.getElementById('suggestions-container').classList.add('hidden');
+    document.getElementById('suggestions-actions').classList.add('hidden');
+    
+    // Clear previous results
+    document.getElementById('suggestions-container').innerHTML = '';
+    const existingToken = document.getElementById('token-usage-info');
+    if (existingToken) existingToken.remove();
+}
+
+async function startAIAnalysis() {
     const loading = document.getElementById('suggestions-loading');
     const container = document.getElementById('suggestions-container');
     const actions = document.getElementById('suggestions-actions');
+    const entryView = document.getElementById('ai-entry-view');
     
+    const provider = document.getElementById('ai-provider').value;
+
+    entryView.classList.add('hidden');
+    loading.classList.remove('hidden');
+    
+    // Update loading text
+    const loadingText = document.querySelector('#suggestions-loading p');
+    loadingText.textContent = provider === 'ollama' ? 'Local AI is analyzing (may be slow)...' : 'Gemini is analyzing your portfolio...';
+
     // Clear any previous token info
     const existingTokenInfo = document.getElementById('token-usage-info');
     if (existingTokenInfo) existingTokenInfo.remove();
-    
-    suggestionsModal.classList.remove('hidden');
-    loading.classList.remove('hidden');
-    container.innerHTML = '';
-    actions.classList.add('hidden');
 
     try {
         const res = await fetch('/api/suggestions', {
@@ -240,7 +260,8 @@ async function getAISuggestions() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 holdings: savedHoldings, 
-                goals: savedGoals 
+                goals: savedGoals,
+                provider: provider
             })
         });
         
@@ -266,10 +287,12 @@ async function getAISuggestions() {
         }
 
         loading.classList.add('hidden');
+        container.classList.remove('hidden');
         actions.classList.remove('hidden');
     } catch (e) {
         console.error(e);
         loading.classList.add('hidden');
+        container.classList.remove('hidden');
         container.innerHTML = `<p class="error-banner">Failed to get suggestions: ${e.message}</p>`;
     }
 }
@@ -436,7 +459,8 @@ document.getElementById('goal-form').addEventListener('submit', async (e) => {
     }
 });
 
-document.getElementById('get-ai-suggestions').addEventListener('click', getAISuggestions);
+document.getElementById('get-ai-suggestions').addEventListener('click', openSuggestionsModal);
+document.getElementById('start-analysis-btn').addEventListener('click', startAIAnalysis);
 document.getElementById('close-suggestions').addEventListener('click', closeSuggestions);
 document.getElementById('cancel-suggestions').addEventListener('click', closeSuggestions);
 document.getElementById('accept-all-suggestions').addEventListener('click', acceptAllSuggestions);

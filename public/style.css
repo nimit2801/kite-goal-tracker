@@ -446,6 +446,27 @@ tr:last-child td {
     margin-bottom: 0.5rem;
 }
 
+.model-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.provider-select {
+    background: #0d1117;
+    border: 1px solid var(--card-border);
+    color: var(--text-main);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.provider-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
 .close-icon {
     background: none;
     border: none;

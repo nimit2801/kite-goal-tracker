@@ -144,20 +144,38 @@
         <div class="modal-content card wide-modal">
             <div class="modal-header">
                 <h2>✨ AI Smart Assignments</h2>
-                <button class="close-icon" id="close-suggestions">&times;</button>
+                <div class="model-toggle">
+                    <select id="ai-provider" class="provider-select">
+                        <option value="gemini">Gemini (Cloud)</option>
+                        <option value="ollama">Local (Ollama)</option>
+                    </select>
+                    <button class="close-icon" id="close-suggestions">&times;</button>
+                </div>
             </div>
             <p class="modal-subtitle">AI analysis based on your holdings and goal timelines.</p>
             
-            <div id="suggestions-loading" class="hidden">
-                <div class="spinner"></div>
-                <p>Gemini is analyzing your portfolio...</p>
+            <div id="ai-entry-view">
+                <p style="margin-bottom: 2rem; color: var(--text-main);">
+                    Select which AI model you want to use to analyze your portfolio assignments. 
+                    <br><br>
+                    <small style="color: var(--text-muted);">
+                    • <strong>Gemini (Cloud)</strong>: Faster, higher reasoning capabilities.<br>
+                    • <strong>Ollama (Local)</strong>: Private, runs on your machine (requires Ollama running).
+                    </small>
+                </p>
+                <button class="btn primary-btn" id="start-analysis-btn" style="width: 100%;">🚀 Start Analysis</button>
             </div>
 
-            <div id="suggestions-container" class="suggestions-list">
+            <div id="suggestions-loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Analyzing your portfolio...</p>
+            </div>
+
+            <div id="suggestions-container" class="suggestions-list hidden">
                 <!-- Suggestions will be injected here -->
             </div>
 
-            <div class="form-actions" id="suggestions-actions">
+            <div class="form-actions hidden" id="suggestions-actions">
                 <button type="button" class="btn" id="cancel-suggestions">Cancel</button>
                 <button type="button" class="btn primary-btn" id="accept-all-suggestions">Accept All</button>
             </div>
