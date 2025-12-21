@@ -1,14 +1,14 @@
 {
-  "name": "photonic-shuttle",
+  "name": "kite-goal-tracker",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A goal-based investment tracker for Zerodha users with AI-powered suggestions.",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Nimit Savant",
+  "license": "MIT",
   "type": "commonjs",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
