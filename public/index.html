@@ -37,7 +37,10 @@
           <!-- Goals Summary -->
           <div class="section-header">
             <h2>Your Goals</h2>
-            <button class="btn sm-btn" id="open-goal-modal">+ New Goal</button>
+            <div class="header-actions">
+                <button class="btn sm-btn ai-btn" id="get-ai-suggestions">✨ Get AI Suggestions</button>
+                <button class="btn sm-btn" id="open-goal-modal">+ New Goal</button>
+            </div>
           </div>
           <div class="goals-grid" id="goals-container">
             <!-- Goal Cards will go here -->
@@ -135,6 +138,34 @@
         </form>
       </div>
     </div>
+
+    <!-- AI Suggestions Modal -->
+    <div id="suggestions-modal" class="modal hidden">
+        <div class="modal-content card wide-modal">
+            <div class="modal-header">
+                <h2>✨ AI Smart Assignments</h2>
+                <button class="close-icon" id="close-suggestions">&times;</button>
+            </div>
+            <p class="modal-subtitle">AI analysis based on your holdings and goal timelines.</p>
+            
+            <div id="suggestions-loading" class="hidden">
+                <div class="spinner"></div>
+                <p>Gemini is analyzing your portfolio...</p>
+            </div>
+
+            <div id="suggestions-container" class="suggestions-list">
+                <!-- Suggestions will be injected here -->
+            </div>
+
+            <div class="form-actions" id="suggestions-actions">
+                <button type="button" class="btn" id="cancel-suggestions">Cancel</button>
+                <button type="button" class="btn primary-btn" id="accept-all-suggestions">Accept All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden"></div>
 
     <script src="script.js"></script>
   </body>

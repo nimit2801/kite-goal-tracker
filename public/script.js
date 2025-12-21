@@ -216,6 +216,184 @@ async function deleteGoal(id) {
     renderAllocations();
 }
 
+// AI Suggestions Logic
+let currentSuggestions = [];
+
+async function getAISuggestions() {
+    const suggestionsModal = document.getElementById('suggestions-modal');
+    const loading = document.getElementById('suggestions-loading');
+    const container = document.getElementById('suggestions-container');
+    const actions = document.getElementById('suggestions-actions');
+    
+    // Clear any previous token info
+    const existingTokenInfo = document.getElementById('token-usage-info');
+    if (existingTokenInfo) existingTokenInfo.remove();
+    
+    suggestionsModal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+    container.innerHTML = '';
+    actions.classList.add('hidden');
+
+    try {
+        const res = await fetch('/api/suggestions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                holdings: savedHoldings, 
+                goals: savedGoals 
+            })
+        });
+        
+        const data = await res.json();
+        if (data.error) throw new Error(data.error);
+        
+        currentSuggestions = data.suggestions || [];
+        renderSuggestions();
+        
+        // Display Token Usage if available
+        if (data.tokenUsage) {
+            const usageDiv = document.createElement('div');
+            usageDiv.id = 'token-usage-info';
+            usageDiv.style.cssText = 'font-size: 0.8rem; color: var(--text-muted); padding: 0.5rem 1rem; text-align: right; border-top: 1px solid var(--card-border); margin-top: 1rem;';
+            usageDiv.innerHTML = `
+                <span>Token Usage: </span>
+                <span title="Prompt Tokens">${data.tokenUsage.promptTokenCount} (In)</span> + 
+                <span title="Response Tokens">${data.tokenUsage.candidatesTokenCount} (Out)</span> = 
+                <strong>${data.tokenUsage.totalTokenCount} Total</strong>
+            `;
+            // Insert before the actions buttons
+            document.querySelector('.modal-content.wide-modal').insertBefore(usageDiv, actions);
+        }
+
+        loading.classList.add('hidden');
+        actions.classList.remove('hidden');
+    } catch (e) {
+        console.error(e);
+        loading.classList.add('hidden');
+        container.innerHTML = `<p class="error-banner">Failed to get suggestions: ${e.message}</p>`;
+    }
+}
+
+function renderSuggestions() {
+    const container = document.getElementById('suggestions-container');
+    container.innerHTML = '';
+
+    if (currentSuggestions.length === 0) {
+        container.innerHTML = '<p style="text-align:center; padding: 2rem;">No suggestions found for current portfolio.</p>';
+        return;
+    }
+
+    currentSuggestions.forEach((s, index) => {
+        const goal = savedGoals.find(g => g.id === s.goalId || g.name === s.goal);
+        if (!goal) return;
+
+        const holding = savedHoldings.find(h => h.tradingsymbol === s.stock);
+        const value = holding ? (holding.last_price * holding.quantity) : 0;
+
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.id = `suggestion-${index}`;
+        div.innerHTML = `
+            <div class="suggestion-header">
+                <div>
+                    <span class="suggestion-stock">${s.stock}</span>
+                    <span style="font-size:0.8rem; color:var(--text-muted); margin-left: 0.5rem;">${formatCurrency(value)}</span>
+                </div>
+                <span class="suggestion-goal" style="background:${goal.color}22; color:${goal.color}">
+                    Assign to ${goal.name}
+                </span>
+            </div>
+            <div class="suggestion-reason">${s.reason}</div>
+            <div class="suggestion-footer">
+                <span class="confidence-badge conf-${s.confidence.toLowerCase()}">${s.confidence} confidence</span>
+                <div class="suggestion-actions">
+                    <button class="btn btn-ghost" onclick="skipSuggestion(${index})">Skip</button>
+                    <button class="btn btn-success-sm" onclick="acceptSuggestion(${index})">Accept</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function skipSuggestion(index) {
+    const el = document.getElementById(`suggestion-${index}`);
+    el.style.opacity = '0';
+    el.style.transform = 'translateX(20px)';
+    setTimeout(() => {
+        el.remove();
+        // Check if all suggestions are gone
+        if (document.querySelectorAll('.suggestion-item').length === 0) {
+            closeSuggestions();
+        }
+    }, 300);
+}
+
+async function acceptSuggestion(index) {
+    const suggestion = currentSuggestions[index];
+    const goal = savedGoals.find(g => g.id === suggestion.goalId || g.name === suggestion.goal);
+    
+    if (!goal) return;
+
+    try {
+        await fetch('/api/assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbol: suggestion.stock, goalId: goal.id })
+        });
+        
+        savedAssignments[suggestion.stock] = goal.id;
+        showToast(`Assigned ${suggestion.stock} to ${goal.name}`);
+        skipSuggestion(index); // Remove from list
+        renderAllocations();
+        renderGoals();
+    } catch (e) {
+        console.error(e);
+        alert("Failed to assign suggestion");
+    }
+}
+
+async function acceptAllSuggestions() {
+    const items = document.querySelectorAll('.suggestion-item');
+    let count = 0;
+
+    for (const item of items) {
+        const id = item.id.split('-')[1];
+        const suggestion = currentSuggestions[id];
+        const goal = savedGoals.find(g => g.id === suggestion.goalId || g.name === suggestion.goal);
+        
+        if (goal) {
+            try {
+                await fetch('/api/assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symbol: suggestion.stock, goalId: goal.id })
+                });
+                savedAssignments[suggestion.stock] = goal.id;
+                count++;
+            } catch (e) { console.error(e); }
+        }
+    }
+
+    showToast(`Successfully assigned ${count} holdings! ✨`);
+    setTimeout(closeSuggestions, 500);
+    renderAllocations();
+    renderGoals();
+}
+
+function closeSuggestions() {
+    document.getElementById('suggestions-modal').classList.add('hidden');
+}
+
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.remove('hidden');
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3000);
+}
+
 // Event Listeners
 document.getElementById('login-btn').addEventListener('click', async () => {
     const res = await fetch('/api/login-url');
@@ -258,6 +436,11 @@ document.getElementById('goal-form').addEventListener('submit', async (e) => {
     }
 });
 
+document.getElementById('get-ai-suggestions').addEventListener('click', getAISuggestions);
+document.getElementById('close-suggestions').addEventListener('click', closeSuggestions);
+document.getElementById('cancel-suggestions').addEventListener('click', closeSuggestions);
+document.getElementById('accept-all-suggestions').addEventListener('click', acceptAllSuggestions);
+
 function formatCurrency(num) {
     return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
@@ -267,6 +450,8 @@ function formatCurrency(num) {
 window.deleteGoal = deleteGoal;
 window.confirmAssign = confirmAssign;
 window.openAssignmentMenu = openAssignmentMenu;
+window.acceptSuggestion = acceptSuggestion;
+window.skipSuggestion = skipSuggestion;
 
 init();
 

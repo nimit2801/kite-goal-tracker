@@ -101,6 +101,23 @@ h1 {
     box-shadow: 0 0 15px rgba(56, 139, 253, 0.4);
 }
 
+.ai-btn {
+    background: linear-gradient(90deg, #bc8cff, #388bfd);
+    border: none;
+    color: white;
+    margin-right: 0.5rem;
+}
+
+.ai-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 0 15px rgba(188, 140, 255, 0.4);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
 .summary-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -415,4 +432,141 @@ tr:last-child td {
     .split-view {
         grid-template-columns: 1fr;
     }
+}
+
+/* AI Suggestions Modal Extensions */
+.wide-modal {
+    max-width: 650px !important;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.close-icon {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.modal-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.suggestions-list {
+    margin-bottom: 1.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.suggestion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.suggestion-stock {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.suggestion-goal {
+    font-size: 0.85rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.suggestion-reason {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    color: var(--text-main);
+}
+
+.suggestion-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.confidence-badge {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 3px;
+}
+
+.conf-high { background: rgba(46, 160, 67, 0.2); color: var(--success-color); }
+.conf-medium { background: rgba(241, 224, 90, 0.2); color: #f1e05a; }
+.conf-low { background: rgba(218, 54, 51, 0.2); color: var(--danger-color); }
+
+.suggestion-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-ghost {
+    background: none;
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+}
+
+.btn-ghost:hover {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-main);
+}
+
+.btn-success-sm {
+    background: var(--success-color);
+    color: white;
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #238636;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast.hidden {
+    opacity: 0;
+    transform: translate(-50%, 1rem);
+    pointer-events: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
 }

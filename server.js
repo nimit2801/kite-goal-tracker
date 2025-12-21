@@ -3,6 +3,7 @@ const express = require('express');
 const { KiteConnect } = require('kiteconnect');
 const app = express();
 const cors = require('cors');
+const { getGeminiSuggestions } = require('./util/gemini');
 const PORT = 3001;
 
 app.use(express.static('public'));
@@ -126,6 +127,21 @@ app.post('/api/assign', (req, res) => {
     }
     store.saveAssignment(symbol, goalId); // goalId can be null to unassign
     res.json({ success: true });
+});
+
+app.post('/api/suggestions', async (req, res) => {
+    const { holdings, goals } = req.body;
+
+    // Cache removed to ensure fresh results every time as requested.
+    
+    try {
+        const result = await getGeminiSuggestions(holdings, goals);
+        // Result is now { suggestions: [...], tokenUsage: {...} }
+        res.json(result);
+    } catch (err) {
+        console.error("Suggestions Error:", err);
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.listen(PORT, () => {
