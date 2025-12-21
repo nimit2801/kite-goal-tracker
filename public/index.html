@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kite Goal Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Goal Tracker</h1>
+        <div id="status-indicator" class="status offline">Disconnected</div>
+      </header>
+
+      <main id="app-content">
+        <!-- Login Section -->
+        <div id="login-section" class="card">
+          <h2>Connect to Zerodha</h2>
+          <p>
+            Please authenticate securely with Kite Connect to start tracking
+            your goals.
+          </p>
+          <button id="login-btn" class="btn primary-btn">
+            Login with Kite
+          </button>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard-section" class="hidden">
+          <!-- Goals Summary -->
+          <div class="section-header">
+            <h2>Your Goals</h2>
+            <button class="btn sm-btn" id="open-goal-modal">+ New Goal</button>
+          </div>
+          <div class="goals-grid" id="goals-container">
+            <!-- Goal Cards will go here -->
+          </div>
+
+          <!-- Portfolio Allocation -->
+          <div class="split-view">
+            <!-- Unassigned Stocks -->
+            <div class="card half-card">
+              <h3>Unassigned Holdings</h3>
+              <p class="sub-text">Drag or select to assign to a goal</p>
+              <div class="holdings-list" id="unassigned-list">
+                <!-- Items go here -->
+              </div>
+            </div>
+
+            <!-- Goal Details / Assigned Stocks -->
+            <div class="card half-card">
+              <h3>Assigned Holdings</h3>
+              <div class="holdings-list" id="assigned-list">
+                <!-- Items go here -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="hidden">
+          <div class="spinner"></div>
+          <p>Syncing portfolio...</p>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-message" class="error-banner hidden"></div>
+      </main>
+    </div>
+
+    <!-- Add Goal Modal -->
+    <div id="goal-modal" class="modal hidden">
+      <div class="modal-content card">
+        <h2>Add New Goal</h2>
+        <form id="goal-form">
+          <div class="form-group">
+            <label>Goal Name</label>
+            <input
+              type="text"
+              name="name"
+              placeholder="e.g. Dream House"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Target Amount (₹)</label>
+            <input
+              type="number"
+              name="targetAmount"
+              placeholder="500000"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label>Deadline</label>
+            <input type="date" name="deadline" />
+          </div>
+          <!-- Simple Color Picker -->
+          <div class="form-group">
+            <label>Color Tag</label>
+            <div class="color-options">
+              <label
+                ><input type="radio" name="color" value="#388bfd" checked />
+                <span class="dot" style="background: #388bfd"></span
+              ></label>
+              <label
+                ><input type="radio" name="color" value="#2ea043" />
+                <span class="dot" style="background: #2ea043"></span
+              ></label>
+              <label
+                ><input type="radio" name="color" value="#bc8cff" />
+                <span class="dot" style="background: #bc8cff"></span
+              ></label>
+              <label
+                ><input type="radio" name="color" value="#da3633" />
+                <span class="dot" style="background: #da3633"></span
+              ></label>
+              <label
+                ><input type="radio" name="color" value="#f1e05a" />
+                <span class="dot" style="background: #f1e05a"></span
+              ></label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn" id="close-modal">Cancel</button>
+            <button type="submit" class="btn primary-btn">Create Goal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

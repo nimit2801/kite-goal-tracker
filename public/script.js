@@ -1,0 +1,272 @@
+let savedHoldings = [];
+let savedGoals = [];
+let savedAssignments = {};
+
+async function init() {
+    const statusEl = document.getElementById('status-indicator');
+    const loginSection = document.getElementById('login-section');
+    
+    try {
+        const statusRes = await fetch('/api/status');
+        const status = await statusRes.json();
+        
+        if (status.isAuthenticated) {
+            statusEl.textContent = 'Connected';
+            statusEl.classList.remove('offline');
+            statusEl.classList.add('connected');
+            loginSection.classList.add('hidden');
+            await loadData();
+        } else {
+            loginSection.classList.remove('hidden');
+        }
+    } catch (e) {
+        console.error("Failed to check status", e);
+    }
+}
+
+async function loadData() {
+    const loading = document.getElementById('loading');
+    loading.classList.remove('hidden');
+    const dashboardSection = document.getElementById('dashboard-section');
+
+    try {
+        // Fetch Goals, Assignments, and Holdings in parallel
+        const [goalsRes, assignRes, holdingsRes] = await Promise.all([
+            fetch('/api/goals'),
+            fetch('/api/assignments'),
+            fetch('/api/holdings')
+        ]);
+
+        savedGoals = await goalsRes.json();
+        savedAssignments = await assignRes.json();
+        
+        const hData = await holdingsRes.json();
+        savedHoldings = Array.isArray(hData) ? hData : (hData.data || []);
+
+        renderGoals();
+        renderAllocations();
+        
+        loading.classList.add('hidden');
+        dashboardSection.classList.remove('hidden');
+    } catch (e) {
+        console.error(e);
+        const errorEl = document.getElementById('error-message');
+        errorEl.textContent = "Failed to load data: " + e.message;
+        errorEl.classList.remove('hidden');
+        loading.classList.add('hidden');
+    }
+}
+
+function renderGoals() {
+    const container = document.getElementById('goals-container');
+    container.innerHTML = '';
+    
+    savedGoals.forEach(g => {
+        // Calculate goal progress
+        const assignedSymbols = Object.keys(savedAssignments).filter(k => savedAssignments[k] === g.id);
+        const currentVal = savedHoldings
+            .filter(h => assignedSymbols.includes(h.tradingsymbol))
+            .reduce((sum, h) => sum + (h.last_price * h.quantity), 0);
+        
+        const progress = Math.min((currentVal / g.targetAmount) * 100, 100);
+        
+        const card = document.createElement('div');
+        card.className = 'goal-card';
+        card.style.setProperty('--goal-color', g.color);
+        card.innerHTML = `
+            <div class="goal-header">
+                <div class="goal-title">${g.name}</div>
+                <div class="goal-amount">Target: ${formatCurrency(g.targetAmount)}</div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" style="width: ${progress}%"></div>
+            </div>
+            <div class="goal-stats">
+                <span class="current-val">${formatCurrency(currentVal)}</span>
+                <span class="percentage">${progress.toFixed(1)}%</span>
+            </div>
+            <button class="btn sm-btn" style="margin-top:1rem; width:100%" onclick="deleteGoal('${g.id}')">Delete</button>
+        `;
+        container.appendChild(card);
+    });
+}
+
+function renderAllocations() {
+    const unassignedList = document.getElementById('unassigned-list');
+    const assignedList = document.getElementById('assigned-list');
+    
+    unassignedList.innerHTML = '';
+    assignedList.innerHTML = '';
+    
+    savedHoldings.forEach(h => {
+        const assignedGoalId = savedAssignments[h.tradingsymbol];
+        const currentVal = h.last_price * h.quantity;
+        
+        const item = document.createElement('div');
+        item.className = 'holding-item';
+        
+        // Context menu or simple click to assign/unassign
+        item.onclick = () => openAssignmentMenu(h);
+        
+        item.innerHTML = `
+            <div class="holding-info">
+                <div>${h.tradingsymbol}</div>
+                <div>${h.quantity} qty • ${formatCurrency(h.last_price)}</div>
+            </div>
+            <div class="holding-value">
+                ${formatCurrency(currentVal)}
+                ${assignedGoalId ? `<br><small style="color:${getGoalColor(assignedGoalId)}">● ${getGoalName(assignedGoalId)}</small>` : ''}
+            </div>
+        `;
+        
+        if (assignedGoalId) {
+            assignedList.appendChild(item);
+        } else {
+            unassignedList.appendChild(item);
+        }
+    });
+}
+
+function getGoalName(id) {
+    const g = savedGoals.find(x => x.id === id);
+    return g ? g.name : 'Unknown';
+}
+
+function getGoalColor(id) {
+    const g = savedGoals.find(x => x.id === id);
+    return g ? g.color : '#fff';
+}
+
+function openAssignmentMenu(holding) {
+    // For MVP, just a simple prompt or confirm. 
+    // Ideally, a nice modal. Let's reuse a simple browser prompt for "Goal ID" 
+    // or build a quick selection modal.
+    // Let's do a simple prompt for now to prove concept, or better:
+    // toggle between "Unassigned" and "Goal 1", "Goal 2"...
+    
+    // Better UX: Show a dynamic list of goals to click
+    
+    // Quick and dirty: user types name or we create a proper modal.
+    // Let's create a dynamic selection modal on the fly
+    showAssignmentModal(holding);
+}
+
+function showAssignmentModal(holding) {
+    // Remove existing if any
+    const existing = document.getElementById('assign-modal');
+    if (existing) existing.remove();
+    
+    const assignedGoalId = savedAssignments[holding.tradingsymbol];
+    
+    const div = document.createElement('div');
+    div.id = 'assign-modal';
+    div.className = 'modal';
+    div.innerHTML = `
+        <div class="modal-content card">
+            <h2>Assign ${holding.tradingsymbol}</h2>
+            <p>Select a goal to assign this stock to:</p>
+            <div class="list">
+                ${assignedGoalId ? `<button class="btn" style="width:100%; margin-bottom:0.5rem; border:1px solid #da3633; color:#da3633" onclick="confirmAssign('${holding.tradingsymbol}', null)">Unassign (Move to General)</button>` : ''}
+                ${savedGoals.map(g => `
+                    <button class="btn" style="width:100%; margin-bottom:0.5rem; text-align:left; border-left: 4px solid ${g.color}" 
+                        onclick="confirmAssign('${holding.tradingsymbol}', '${g.id}')">
+                        ${g.name}
+                    </button>
+                `).join('')}
+            </div>
+            <button class="btn" style="margin-top:1rem" onclick="document.getElementById('assign-modal').remove()">Cancel</button>
+        </div>
+    `;
+    document.body.appendChild(div);
+}
+
+async function confirmAssign(symbol, goalId) {
+    document.getElementById('assign-modal').remove();
+    
+    try {
+        await fetch('/api/assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbol, goalId })
+        });
+        // Update local state and re-render
+        if (goalId) {
+            savedAssignments[symbol] = goalId;
+        } else {
+            delete savedAssignments[symbol];
+        }
+        renderAllocations();
+        renderGoals(); // Update progress
+    } catch (e) {
+        console.error(e);
+        alert("Failed to assign");
+    }
+}
+
+async function deleteGoal(id) {
+    if (!confirm("Are you sure? This will unassign all stocks linked to this goal.")) return;
+    
+    await fetch('/api/goals/' + id, { method: 'DELETE' });
+    savedGoals = savedGoals.filter(g => g.id !== id);
+    // Remove assignments locally
+    for (const k in savedAssignments) {
+        if (savedAssignments[k] === id) delete savedAssignments[k];
+    }
+    renderGoals();
+    renderAllocations();
+}
+
+// Event Listeners
+document.getElementById('login-btn').addEventListener('click', async () => {
+    const res = await fetch('/api/login-url');
+    const data = await res.json();
+    window.location.href = data.url;
+});
+
+const modal = document.getElementById('goal-modal');
+document.getElementById('open-goal-modal').addEventListener('click', () => {
+    modal.classList.remove('hidden');
+});
+document.getElementById('close-modal').addEventListener('click', () => {
+    modal.classList.add('hidden');
+});
+
+document.getElementById('goal-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const goalData = {
+        name: fd.get('name'),
+        targetAmount: fd.get('targetAmount'),
+        deadline: fd.get('deadline'),
+        color: fd.get('color')
+    };
+    
+    try {
+        const res = await fetch('/api/goals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(goalData)
+        });
+        const newGoal = await res.json();
+        savedGoals.push(newGoal);
+        renderGoals();
+        modal.classList.add('hidden');
+        e.target.reset();
+    } catch (err) {
+        console.error(err);
+        alert("Failed to create goal");
+    }
+});
+
+function formatCurrency(num) {
+    return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+
+// Expose functions to window for onclick handlers in HTML
+window.deleteGoal = deleteGoal;
+window.confirmAssign = confirmAssign;
+window.openAssignmentMenu = openAssignmentMenu;
+
+init();
+
