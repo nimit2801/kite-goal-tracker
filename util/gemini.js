@@ -29,7 +29,8 @@ Return ONLY a valid JSON object with the following structure:
 {
   "suggestions": [
     {"stock": "SYMBOL", "goalId": "goal_id", "reason": "explanation", "confidence": "high/medium/low"}
-  ]
+  ],
+  "personality_summary": "A 1-sentence motivating insight about the user's investment style/goals."
 }
 
 Note: Use the "id" of the goal in "goalId".
@@ -53,6 +54,7 @@ Note: Use the "id" of the goal in "goalId".
       
       return {
           suggestions: parsed.suggestions,
+          personalitySummary: parsed.personality_summary,
           tokenUsage: usage
       };
     } catch (error) {

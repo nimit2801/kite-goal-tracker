@@ -5,8 +5,10 @@ const app = express();
 const cors = require('cors');
 const { getGeminiSuggestions } = require('./util/gemini');
 const { getOllamaSuggestions } = require('./util/ollama');
+const morgan = require('morgan');
 const PORT = 3001;
 
+app.use(morgan('dev'));
 app.use(express.static('public'));
 app.use(express.json());
 app.use(cors());
@@ -141,7 +143,9 @@ app.post('/api/suggestions', async (req, res) => {
     try {
         let result;
         if (selectedProvider === 'ollama') {
-            result = await getOllamaSuggestions(holdings, goals);
+            result = await getOllamaSuggestions(holdings, goals, false);
+        } else if (selectedProvider === 'ollama-cloud') {
+            result = await getOllamaSuggestions(holdings, goals, true);
         } else {
             result = await getGeminiSuggestions(holdings, goals);
         }

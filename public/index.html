@@ -148,19 +148,25 @@
                     <select id="ai-provider" class="provider-select">
                         <option value="gemini">Gemini (Cloud)</option>
                         <option value="ollama">Local (Ollama)</option>
+                        <option value="ollama-cloud">Ollama (Cloud - gpt-oss)</option>
                     </select>
                     <button class="close-icon" id="close-suggestions">&times;</button>
                 </div>
             </div>
             <p class="modal-subtitle">AI analysis based on your holdings and goal timelines.</p>
             
+            <div id="personality-summary" class="hidden" style="margin-bottom: 1.5rem; padding: 1rem; background: linear-gradient(90deg, rgba(88, 166, 255, 0.1), rgba(188, 140, 255, 0.1)); border-radius: 8px; border-left: 3px solid var(--primary-color);">
+                <i style="color: var(--primary-color);">💡 Insight: </i> <span id="personality-text" style="font-style: italic; color: var(--text-main);">Loading insight...</span>
+            </div>
+
             <div id="ai-entry-view">
                 <p style="margin-bottom: 2rem; color: var(--text-main);">
                     Select which AI model you want to use to analyze your portfolio assignments. 
                     <br><br>
                     <small style="color: var(--text-muted);">
                     • <strong>Gemini (Cloud)</strong>: Faster, higher reasoning capabilities.<br>
-                    • <strong>Ollama (Local)</strong>: Private, runs on your machine (requires Ollama running).
+                    • <strong>Ollama (Local)</strong>: Private, runs on your machine.<br>
+                    • <strong>Ollama (Cloud)</strong>: Uses remote gpt-oss model.
                     </small>
                 </p>
                 <button class="btn primary-btn" id="start-analysis-btn" style="width: 100%;">🚀 Start Analysis</button>

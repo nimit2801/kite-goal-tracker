@@ -225,6 +225,7 @@ function openSuggestionsModal() {
     
     // Reset view
     document.getElementById('ai-entry-view').classList.remove('hidden');
+    document.getElementById('personality-summary').classList.add('hidden');
     document.getElementById('suggestions-loading').classList.add('hidden');
     document.getElementById('suggestions-container').classList.add('hidden');
     document.getElementById('suggestions-actions').classList.add('hidden');
@@ -271,6 +272,13 @@ async function startAIAnalysis() {
         currentSuggestions = data.suggestions || [];
         renderSuggestions();
         
+        // Show personality summary if available
+        if (data.personalitySummary) {
+            const pSummary = document.getElementById('personality-summary');
+            document.getElementById('personality-text').textContent = `"${data.personalitySummary}"`;
+            pSummary.classList.remove('hidden');
+        }
+
         // Display Token Usage if available
         if (data.tokenUsage) {
             const usageDiv = document.createElement('div');
