@@ -3,6 +3,7 @@
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Status](https://img.shields.io/badge/Status-Beta-orange.svg)
 ![Node](https://img.shields.io/badge/Node.js-v18%2B-green.svg)
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/nimit2801)
 
 A modern, aesthetically pleasing web application that interacts with your **Zerodha Kite** account to help you assign your stock holdings to specific life goals.
 
