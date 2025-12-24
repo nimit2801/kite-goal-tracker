@@ -2,16 +2,53 @@ let savedHoldings = [];
 let savedGoals = [];
 let savedAssignments = {};
 
+
+
+// Local Storage Helper
+const LocalStore = {
+    getKeys: () => ({ 
+        GOALS: 'kite_goals', 
+        ASSIGNMENTS: 'kite_assignments',
+        PERSONALITY: 'kite_personality',
+        SUGGESTIONS: 'kite_suggestions', // Optional: if we want to persist unaccepted suggestions
+        DEMO_MODE: 'kite_demo_mode'
+    }),
+    
+    getGoals: () => JSON.parse(localStorage.getItem('kite_goals') || '[]'),
+    setGoals: (goals) => localStorage.setItem('kite_goals', JSON.stringify(goals)),
+    
+    getAssignments: () => JSON.parse(localStorage.getItem('kite_assignments') || '{}'),
+    setAssignments: (data) => localStorage.setItem('kite_assignments', JSON.stringify(data)),
+    
+    getPersonality: () => localStorage.getItem('kite_personality'),
+    setPersonality: (text) => localStorage.setItem('kite_personality', text),
+    
+    isDemoMode: () => localStorage.getItem('kite_demo_mode') === 'true',
+    setDemoMode: (val) => localStorage.setItem('kite_demo_mode', val),
+    
+    // Helper to generate simple ID
+    generateId: () => Date.now().toString(36) + Math.random().toString(36).substr(2)
+};
+
 async function init() {
     const statusEl = document.getElementById('status-indicator');
     const loginSection = document.getElementById('login-section');
     
+    // Auto-restore Demo Mode if active
+    if (LocalStore.isDemoMode()) {
+        try {
+            await fetch('/api/demo-login', { method: 'POST' });
+        } catch (e) {
+            console.warn("Failed to auto-restore demo session");
+        }
+    }
+
     try {
         const statusRes = await fetch('/api/status');
         const status = await statusRes.json();
         
         if (status.isAuthenticated) {
-            statusEl.textContent = 'Connected';
+            statusEl.textContent = 'Connected' + (LocalStore.isDemoMode() ? ' (Demo)' : '');
             statusEl.classList.remove('offline');
             statusEl.classList.add('connected');
             loginSection.classList.add('hidden');
@@ -30,21 +67,27 @@ async function loadData() {
     const dashboardSection = document.getElementById('dashboard-section');
 
     try {
-        // Fetch Goals, Assignments, and Holdings in parallel
-        const [goalsRes, assignRes, holdingsRes] = await Promise.all([
-            fetch('/api/goals'),
-            fetch('/api/assignments'),
-            fetch('/api/holdings')
-        ]);
-
-        savedGoals = await goalsRes.json();
-        savedAssignments = await assignRes.json();
+        // Fetch only Holdings from server (API required for visual updates)
+        const holdingsRes = await fetch('/api/holdings');
+        
+        // Load Goals & Assignments from LocalStorage
+        savedGoals = LocalStore.getGoals();
+        savedAssignments = LocalStore.getAssignments();
         
         const hData = await holdingsRes.json();
         savedHoldings = Array.isArray(hData) ? hData : (hData.data || []);
 
         renderGoals();
         renderAllocations();
+
+        // Restore Personality Insight if available
+        const personality = LocalStore.getPersonality();
+        if (personality) {
+             // We don't have a dedicated place on dashboard for it yet, 
+             // but we can ensure it shows up in the modal or add a dashboard banner.
+             // For now, let's inject it into the dashboard header if it exists
+             // OR just keep it ready for the modal.
+        }
         
         loading.classList.add('hidden');
         dashboardSection.classList.remove('hidden');
@@ -138,16 +181,6 @@ function getGoalColor(id) {
 }
 
 function openAssignmentMenu(holding) {
-    // For MVP, just a simple prompt or confirm. 
-    // Ideally, a nice modal. Let's reuse a simple browser prompt for "Goal ID" 
-    // or build a quick selection modal.
-    // Let's do a simple prompt for now to prove concept, or better:
-    // toggle between "Unassigned" and "Goal 1", "Goal 2"...
-    
-    // Better UX: Show a dynamic list of goals to click
-    
-    // Quick and dirty: user types name or we create a proper modal.
-    // Let's create a dynamic selection modal on the fly
     showAssignmentModal(holding);
 }
 
@@ -184,17 +217,18 @@ async function confirmAssign(symbol, goalId) {
     document.getElementById('assign-modal').remove();
     
     try {
-        await fetch('/api/assign', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symbol, goalId })
-        });
+        // No API call for assignment persistence now
+        
         // Update local state and re-render
         if (goalId) {
             savedAssignments[symbol] = goalId;
         } else {
             delete savedAssignments[symbol];
         }
+        
+        // Save to LocalStorage
+        LocalStore.setAssignments(savedAssignments);
+
         renderAllocations();
         renderGoals(); // Update progress
     } catch (e) {
@@ -206,12 +240,18 @@ async function confirmAssign(symbol, goalId) {
 async function deleteGoal(id) {
     if (!confirm("Are you sure? This will unassign all stocks linked to this goal.")) return;
     
-    await fetch('/api/goals/' + id, { method: 'DELETE' });
+    // No API call for delete goal
+    
     savedGoals = savedGoals.filter(g => g.id !== id);
     // Remove assignments locally
     for (const k in savedAssignments) {
         if (savedAssignments[k] === id) delete savedAssignments[k];
     }
+    
+    // Update LocalStorage
+    LocalStore.setGoals(savedGoals);
+    LocalStore.setAssignments(savedAssignments);
+    
     renderGoals();
     renderAllocations();
 }
@@ -249,7 +289,28 @@ async function startAIAnalysis() {
     
     // Update loading text
     const loadingText = document.querySelector('#suggestions-loading p');
-    loadingText.textContent = provider === 'ollama' ? 'Local AI is analyzing (may be slow)...' : 'Gemini is analyzing your portfolio...';
+    loadingText.textContent = 'Initializing AI agent...';
+
+    // Rotating funny/engaging messages
+    const messages = [
+        "Analyzing your portfolio structure...",
+        "Identifying optimal allocation strategies...",
+        "Evaluating goal feasibility...",
+        "Calculating risk-adjusted returns...",
+        "Comparing assets against deadlines...",
+        "Formulating the perfect plan...",
+        "Almost there, finalizing insights..."
+    ];
+    
+    let msgIndex = 0;
+    const intervalId = setInterval(() => {
+        msgIndex = (msgIndex + 1) % messages.length;
+        loadingText.style.opacity = 0;
+        setTimeout(() => {
+            loadingText.textContent = messages[msgIndex];
+            loadingText.style.opacity = 1;
+        }, 200); // smooth fade
+    }, 2000); // Change every 2 seconds
 
     // Clear any previous token info
     const existingTokenInfo = document.getElementById('token-usage-info');
@@ -267,6 +328,8 @@ async function startAIAnalysis() {
         });
         
         const data = await res.json();
+        clearInterval(intervalId); // Stop loading messages
+
         if (data.error) throw new Error(data.error);
         
         currentSuggestions = data.suggestions || [];
@@ -274,6 +337,7 @@ async function startAIAnalysis() {
         
         // Show personality summary if available
         if (data.personalitySummary) {
+            LocalStore.setPersonality(data.personalitySummary);
             const pSummary = document.getElementById('personality-summary');
             document.getElementById('personality-text').textContent = `"${data.personalitySummary}"`;
             pSummary.classList.remove('hidden');
@@ -299,6 +363,7 @@ async function startAIAnalysis() {
         actions.classList.remove('hidden');
     } catch (e) {
         console.error(e);
+        clearInterval(intervalId); // Stop loading messages
         loading.classList.add('hidden');
         container.classList.remove('hidden');
         container.innerHTML = `<p class="error-banner">Failed to get suggestions: ${e.message}</p>`;
@@ -367,13 +432,11 @@ async function acceptSuggestion(index) {
     if (!goal) return;
 
     try {
-        await fetch('/api/assign', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ symbol: suggestion.stock, goalId: goal.id })
-        });
+        // No API call needed for assignment
         
         savedAssignments[suggestion.stock] = goal.id;
+        LocalStore.setAssignments(savedAssignments);
+
         showToast(`Assigned ${suggestion.stock} to ${goal.name}`);
         skipSuggestion(index); // Remove from list
         renderAllocations();
@@ -394,17 +457,12 @@ async function acceptAllSuggestions() {
         const goal = savedGoals.find(g => g.id === suggestion.goalId || g.name === suggestion.goal);
         
         if (goal) {
-            try {
-                await fetch('/api/assign', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ symbol: suggestion.stock, goalId: goal.id })
-                });
-                savedAssignments[suggestion.stock] = goal.id;
-                count++;
-            } catch (e) { console.error(e); }
+            savedAssignments[suggestion.stock] = goal.id;
+            count++;
         }
     }
+    
+    LocalStore.setAssignments(savedAssignments);
 
     showToast(`Successfully assigned ${count} holdings! ✨`);
     setTimeout(closeSuggestions, 500);
@@ -443,21 +501,21 @@ document.getElementById('close-modal').addEventListener('click', () => {
 document.getElementById('goal-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-    const goalData = {
+    
+    const newGoal = {
+        id: LocalStore.generateId(),
         name: fd.get('name'),
-        targetAmount: fd.get('targetAmount'),
+        targetAmount: parseFloat(fd.get('targetAmount')),
         deadline: fd.get('deadline'),
-        color: fd.get('color')
+        color: fd.get('color'),
+        createdAt: new Date().toISOString()
     };
     
     try {
-        const res = await fetch('/api/goals', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(goalData)
-        });
-        const newGoal = await res.json();
+        // No API call
         savedGoals.push(newGoal);
+        LocalStore.setGoals(savedGoals);
+        
         renderGoals();
         modal.classList.add('hidden');
         e.target.reset();
@@ -473,6 +531,93 @@ document.getElementById('close-suggestions').addEventListener('click', closeSugg
 document.getElementById('cancel-suggestions').addEventListener('click', closeSuggestions);
 document.getElementById('accept-all-suggestions').addEventListener('click', acceptAllSuggestions);
 
+
+// Demo Login Handler with Seeding
+document.getElementById('demo-btn').addEventListener('click', async () => {
+    try {
+        await fetch('/api/demo-login', { method: 'POST' });
+        LocalStore.setDemoMode('true');
+        
+        // Seed LocalStorage if empty
+        const currentGoals = LocalStore.getGoals();
+        if (currentGoals.length === 0) {
+            const demoGoals = [
+                { id: 'demo_g1', name: 'Dream Home', targetAmount: 5000000, deadline: '2030-12-31', color: '#388bfd', createdAt: new Date().toISOString() },
+                { id: 'demo_g2', name: 'New Car', targetAmount: 1500000, deadline: '2026-06-30', color: '#2ea043', createdAt: new Date().toISOString() }
+            ];
+            LocalStore.setGoals(demoGoals);
+        }
+        
+        window.location.reload();
+    } catch (e) {
+        alert("Failed to start demo mode");
+    }
+});
+
+// Data Management: Export & Import
+document.getElementById('export-data-btn').addEventListener('click', () => {
+    const data = {
+        goals: LocalStore.getGoals(),
+        assignments: LocalStore.getAssignments(),
+        personality: LocalStore.getPersonality(),
+        timestamp: new Date().toISOString(),
+        version: 1
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kite-goal-tracker-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Configuration exported! ⬇️");
+});
+
+document.getElementById('import-data-btn').addEventListener('click', () => {
+    document.getElementById('import-file-input').click();
+});
+
+document.getElementById('import-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+            
+            // Basic validation
+            if (Array.isArray(data.goals) && typeof data.assignments === 'object') {
+                LocalStore.setGoals(data.goals);
+                LocalStore.setAssignments(data.assignments);
+                if (data.personality) LocalStore.setPersonality(data.personality);
+                
+                showToast("Configuration imported successfully! 🔄");
+                setTimeout(() => window.location.reload(), 1000); // Reload to reflect changes
+            } else {
+                alert("Invalid configuration file format.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to parse JSON file.");
+        }
+    };
+    reader.readAsText(file);
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+    try {
+        await fetch('/api/logout', { method: 'POST' });
+        LocalStore.setDemoMode('false');
+        window.location.reload();
+    } catch (e) {
+        console.error("Logout failed", e);
+    }
+});
+
 function formatCurrency(num) {
     return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
@@ -486,4 +631,3 @@ window.acceptSuggestion = acceptSuggestion;
 window.skipSuggestion = skipSuggestion;
 
 init();
-

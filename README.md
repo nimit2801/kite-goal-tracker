@@ -16,9 +16,13 @@ Powered by **Gemini AI** and **Ollama** (Local AI) to provide smart, diversified
 - **Smart Allocation**: Drag or assign your existing Zerodha holdings to these goals.
 - **AI Suggestions**:
   - Uses **Google Gemini 3 (Flash Preview)** or **Ollama (Qwen/GPT-OSS)** to analyze your portfolio.
-  - Suggests assignments based on goal duration (e.g., Stable stocks for short-term, Growth for long-term).
-  - Provides an "Investment Personality" summary based on your holdings.
-- **Privacy Focused**: Run AI locally with Ollama for complete data privacy.
+  - Smartly suggests which stocks fit which goal based on risk and timeline.
+  - **Investment Personality**: Generates a motivational summary of your style.
+  - **Interactive Loader**: Dynamic status updates (e.g., "Evaluating risk...") keep you engaged while AI thinks.
+- **Privacy-First Architecture**:
+  - **Zero Database**: User data (Goals & Assignments) is stored entirely in **LocalStorage** on your device.
+  - **Portable Data**: **Export/Import** your configuration as a JSON file to move between devices.
+- **Demo Mode**: One-click mock environment to test the app without a Zerodha account.
 - **Real-time Tracking**: Live value updates fetched directly from Kite Connect.
 - **Premium UI**: Dark-themed, glassmorphism design for a delightful user experience.
 

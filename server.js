@@ -19,6 +19,7 @@ const apiSecret = process.env.KITE_API_SECRET;
 // We'll store the access token in memory for this minimal app.
 // In a production app, you'd store this in a database or session.
 let savedAccessToken = null;
+let isDemoMode = false;
 
 const kc = new KiteConnect({
     api_key: apiKey
@@ -60,16 +61,32 @@ app.get('/callback', async (req, res) => {
     }
 });
 
-// Endpoint to fetch holdings
+// --- GOAL TRACKING API ---
+// Goals and Assignments are now handled on the client-side (LocalStorage)
+// The backend only proxies AI requests and authenticated KiteConnect calls.
+
+// Endpoint to fetch holdings (Authenticated)
 app.get('/api/holdings', async (req, res) => {
-    if (!savedAccessToken) {
+    if (!savedAccessToken && !isDemoMode) {
         return res.status(401).json({ error: "Not authenticated" });
     }
     
     // Ensure the token is set (redundant if set in callback, but good for safety if we restart kc instance logic)
-    kc.setAccessToken(savedAccessToken);
+    if (savedAccessToken) kc.setAccessToken(savedAccessToken);
 
     try {
+        if (isDemoMode) {
+            // Return fake holdings
+            const demoHoldings = [
+                { tradingsymbol: 'INFY', quantity: 50, last_price: 1450.50 },
+                { tradingsymbol: 'RELIANCE', quantity: 20, last_price: 2400.00 },
+                { tradingsymbol: 'TCS', quantity: 15, last_price: 3500.25 },
+                { tradingsymbol: 'HDFCBANK', quantity: 100, last_price: 1600.00 },
+                { tradingsymbol: 'NIFTYBEES', quantity: 500, last_price: 210.50 }
+            ];
+            return res.json(demoHoldings);
+        }
+
         const holdings = await kc.getHoldings();
         res.json(holdings);
     } catch (err) {
@@ -79,59 +96,22 @@ app.get('/api/holdings', async (req, res) => {
         res.status(500).json({ error: "Failed to fetch holdings: " + err.message });
     }
 });
-
 // Endpoint to check auth status
 app.get('/api/status', (req, res) => {
-    res.json({ isAuthenticated: !!savedAccessToken });
+    res.json({ isAuthenticated: !!savedAccessToken || isDemoMode });
 });
 
-// --- GOAL TRACKING API ---
-const store = require('./util/store'); 
-// Actually, let's just use a simple random ID generator to avoid installing more deps if possible, 
-// OR just assume we can restart the server to install. I'll just use Date.now().toString(36) + Math.random().toString(36).substr(2)
-
-const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
-
-app.get('/api/goals', (req, res) => {
-    res.json(store.getGoals());
-});
-
-app.post('/api/goals', (req, res) => {
-    const { name, targetAmount, deadline, color } = req.body;
-    if (!name || !targetAmount) {
-        return res.status(400).json({ error: "Name and Target Amount are required" });
-    }
-    const newGoal = {
-        id: generateId(),
-        name,
-        targetAmount: parseFloat(targetAmount),
-        deadline,
-        color: color || '#388bfd',
-        createdAt: new Date().toISOString()
-    };
-    store.saveGoal(newGoal);
-    res.json(newGoal);
-});
-
-app.delete('/api/goals/:id', (req, res) => {
-    store.deleteGoal(req.params.id);
+app.post('/api/demo-login', (req, res) => {
+    isDemoMode = true;
+    savedAccessToken = "DEMO_TOKEN"; // Fake token to pass checks
     res.json({ success: true });
 });
 
-app.get('/api/assignments', (req, res) => {
-    res.json(store.getAssignments());
-});
-
-app.post('/api/assign', (req, res) => {
-    // tradingSymbol (from Kite) -> goalId
-    const { symbol, goalId } = req.body;
-    if (!symbol) {
-        return res.status(400).json({ error: "Symbol is required" });
-    }
-    store.saveAssignment(symbol, goalId); // goalId can be null to unassign
+app.post('/api/logout', (req, res) => {
+    savedAccessToken = null;
+    isDemoMode = false;
     res.json({ success: true });
 });
-
 app.post('/api/suggestions', async (req, res) => {
     const { holdings, goals, provider } = req.body;
     
