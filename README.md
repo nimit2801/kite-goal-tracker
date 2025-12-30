@@ -81,6 +81,25 @@ Powered by **Gemini AI** and **Ollama** (Local AI) to provide smart, diversified
 
     > **Note**: On first run, you will be redirected to Zerodha for login. The app will create a `data/db.json` file to store your goals locally.
 
+## 🤖 Kite App Setup (Zerodha)
+
+Follow the steps below to configure your Kite Developer App:
+1.  Open the Kite Developer Console  
+   https://developers.kite.trade/apps
+2.  Click **Create New App**
+3.  Enter the following details:
+       - **App Name:** `Kite Goal Tracker`
+       - **Zerodha Client ID:** Your Zerodha client ID
+       - **Redirect URL:**  
+        - Local: `http://localhost:3001/callback`  
+        - Production: `https://your-domain.com/callback`
+
+
+4. Save the app.
+
+📸 **Screenshot Reference:**  
+![Kite App Setup](assets/kite-app-demo-screenshot.png)
+
 ## 🤖 AI Setup
 
 ### Gemini (Cloud)
