@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+
+# Git
+.git
+.gitignore
+
+# Environment files (passed via compose)
+.env
+.env.example
+
+# Development files
+*.md
+LICENSE
+.DS_Store
+
+# Data and assets folders
+data/
+assets/
+
+# Videos
+*.mov
+*.mp4
+
+# Docker files (not needed in context)
+Dockerfile
+docker-compose.yml
+.dockerignore
